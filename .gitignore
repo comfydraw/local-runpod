@@ -1,0 +1,47 @@
+# ─── Project & Context ─────────────────────────────────────────────
+.project/
+.context/
+
+# ─── Secrets & credentials ─────────────────────────────────────────
+runpod.env
+.env
+.env.*
+.env.local
+docker/credentials/
+
+# ─── Python ───────────────────────────────────────────────────────
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+.eggs/
+dist/
+build/
+.mypy_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+*.manifest
+
+# ─── Runtime state ────────────────────────────────────────────────
+.active_pod_id
+
+# ─── IDE & editors ────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ─── OS ───────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ─── Logs ─────────────────────────────────────────────────────────
+*.log
+logs/

@@ -1,0 +1,4 @@
+runpod
+requests
+python-dotenv
+tabulate

@@ -1,0 +1,10 @@
+{
+    "workspace_id": "tulpa-toons-workspace",
+    "models": [
+        {
+            "drive_file_id": "1xZndzJDlh8i59EekYPvHdzJlA9ILpkoB",
+            "file_name": "illustrious_tulpa-toons.safetensors",
+            "parent_folder_name": "checkpoints"
+        }
+    ]
+}
