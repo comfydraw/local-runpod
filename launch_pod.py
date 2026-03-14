@@ -19,16 +19,23 @@ def launch_pod(gpu_type_id, template_id, max_attempts: int = 10, backoff_seconds
     if volume_id:
         print(f"Attaching network volume: {volume_id}")
 
+    # Distinguish image name (e.g. ghcr.io/org/img:tag) from My Template ID (alphanumeric)
+    use_template = "/" not in template_id and ":" not in template_id
+
     for attempt in range(1, max_attempts + 1):
         try:
             pod_kwargs = {
                 "name": f"ComfyUI-Worker-{int(time.time())}",
-                "image_name": template_id,
                 "gpu_type_id": gpu_type_id,
                 "cloud_type": "COMMUNITY",
                 "ports": "8188/http",
                 "container_disk_in_gb": 20,
             }
+            if use_template:
+                pod_kwargs["template_id"] = template_id
+                pod_kwargs["image_name"] = ""  # Template provides the image
+            else:
+                pod_kwargs["image_name"] = template_id
             if volume_id:
                 pod_kwargs["volume_id"] = volume_id
 
