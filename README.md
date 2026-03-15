@@ -44,6 +44,9 @@ python3 launch_pod.py --gpu "NVIDIA RTX 4090" --template "runpod/comfyui:latest"
 # Attach a network volume
 python3 launch_pod.py --volume_id "nv-xxxxxxx"
 
+# Launch with a workspace override
+python3 launch_pod.py --workspace path/to/workspace.json
+
 # List active pods and their ComfyUI URLs
 python3 list_pods.py
 
@@ -91,33 +94,28 @@ relative to this directory, with a `request-handler` service configured.
 
 ## Creating the ComfyUI + GDrive Sync My Template
 
-The custom image (`ghcr.io/comfydraw/runpod-comfyui-sync:latest` or your fork’s equivalent) needs a **My Template** in RunPod so pods can be launched with the right image and environment variables.
+The custom image (`ghcr.io/comfydraw/runpod-comfyui-sync:latest` or your fork's equivalent) needs a **My Template** in RunPod so pods can be launched with the right image, credentials, and a default workspace.
 
 ### Prerequisites
 
 - Docker image built and pushed (e.g. via GitHub Actions from this repo).
 - RunPod account and API key in `runpod.env`.
-- (Optional) GCP Service Account JSON and workspace definition for Google Drive sync.
+- GCP Service Account JSON for Google Drive access.
+- A default workspace definition JSON (the baseline model set for new pods).
 
-### Step 1: Create RunPod Secrets (for sensitive data)
+### Step 1: Create RunPod Secrets
 
-Store credentials as RunPod Secrets so they are not in plain text.
+Store the GCP credential and a default workspace definition as RunPod Secrets.
 
 1. Go to [RunPod Secrets](https://www.console.runpod.io/user/secrets).
 2. Click **Create Secret** for each:
 
-   | Secret Name     | Description                               | Value                                  |
-   |-----------------|-------------------------------------------|----------------------------------------|
-   | `gcp_sa_b64`    | Base64-encoded GCP Service Account JSON   | `base64 -w0 credentials/your-sa.json`  |
-   | `workspace_def_b64` | Base64-encoded workspace definition | `base64 -w0 workspace_def.json`        |
+   | Secret Name          | Description                             | How to generate the value              |
+   |----------------------|-----------------------------------------|----------------------------------------|
+   | `gcp_sa_b64`         | GCP Service Account JSON (base64)       | `base64 -w0 credentials/your-sa.json`  |
+   | `workspace_def_b64`  | Default workspace definition (base64)   | `base64 -w0 workspace_default.json`    |
 
-   Generate the value locally, e.g.:
-
-   ```bash
-   base64 -w0 credentials/your-sa.json
-   ```
-
-   Paste the output into the **Secret Value** field.
+   `gcp_sa_b64` is a real credential and must be a Secret. `workspace_def_b64` is not sensitive, but storing the default as a Secret keeps all template config in one place and makes it easy to update without editing launch scripts.
 
 ### Step 2: Create the My Template
 
@@ -125,57 +123,65 @@ Store credentials as RunPod Secrets so they are not in plain text.
 2. Click **New Template**.
 3. Configure:
 
-   | Setting          | Value                                                                 |
-   |------------------|-----------------------------------------------------------------------|
-   | **Name**         | `comfyui-gdrive-sync` (or similar)                                   |
-   | **Container Image** | `ghcr.io/comfydraw/runpod-comfyui-sync:latest` (or your org’s path) |
-   | **Container Disk**  | 20 GB or more                                                        |
-   | **TCP Ports**    | Add SSH (22)                                                          |
-   | **HTTP Ports**   | Add ComfyUI (8188)                                                    |
+   | Setting              | Value                                                                 |
+   |----------------------|-----------------------------------------------------------------------|
+   | **Name**             | `comfyui-gdrive-sync` (or similar)                                   |
+   | **Container Image**  | `ghcr.io/comfydraw/runpod-comfyui-sync:latest` (or your org's path)  |
+   | **Container Disk**   | 20 GB or more                                                        |
+   | **TCP Ports**        | Add SSH (22)                                                          |
+   | **HTTP Ports**       | Add ComfyUI (8188)                                                    |
 
 4. Expand **Environment Variables** and add:
 
-   | Key            | Value                                         |
-   |----------------|-----------------------------------------------|
-   | `GCP_SA_B64`   | `{{ RUNPOD_SECRET_gcp_sa_b64 }}`              |
-   | `WORKSPACE_DEF_B64` | `{{ RUNPOD_SECRET_workspace_def_b64 }}` |
+   | Key                  | Value                                         |
+   |----------------------|-----------------------------------------------|
+   | `GCP_SA_B64`         | `{{ RUNPOD_SECRET_gcp_sa_b64 }}`              |
+   | `WORKSPACE_DEF_B64`  | `{{ RUNPOD_SECRET_workspace_def_b64 }}`       |
 
-   Use the secret selector (key icon) to pick the matching secrets.  
-   If you skip sync, you can omit these; the entrypoint will detect their absence and start ComfyUI without syncing.
+   The `WORKSPACE_DEF_B64` here is the **default** workspace — the fallback model set used when no override is provided at launch time.
 
 5. Click **Save Template**.
 
 ### Step 3: Configure `runpod.env`
 
-Set the template or image in `runpod.env`:
-
 ```
 RUNPOD_TEMPLATE_ID=<your-template-id>
 ```
 
-Use your **My Template ID** (a short alphanumeric string like `ppny3n7iri`, visible in the template URL or API). The `launch_pod.py` script treats values with `/` or `:` as Docker image names; otherwise it uses them as template IDs.
-
-Alternatively, use the image directly (no secrets from the template):
-
-```
-RUNPOD_TEMPLATE_ID=ghcr.io/comfydraw/runpod-comfyui-sync:latest
-```
+Use the **My Template ID** (a short alphanumeric string like `ppny3n7iri`, visible in the template URL or API). The `launch_pod.py` script treats values containing `/` or `:` as Docker image names; anything else is used as a template ID.
 
 ### Step 4: Launch a Pod
 
 ```bash
 source .venv/bin/activate
-python3 launch_pod.py --template <your-template-id>
-```
 
-Or set `RUNPOD_TEMPLATE_ID` in `runpod.env` and run:
-
-```bash
+# Launch with the default workspace (from the template Secret)
 python3 launch_pod.py
+
+# Launch with a specific workspace (overrides the default)
+python3 launch_pod.py --workspace path/to/workspace.json
 ```
+
+### Workspace Override System
+
+The template stores a **default** workspace definition as a Secret. This ensures every pod — whether launched from the CLI, the RunPod Console, or the API — always has a baseline set of models to sync.
+
+The `--workspace` flag (or the `workspace_json` parameter when calling `launch_pod()` programmatically) lets callers **override** the default at launch time. When provided, the workspace JSON is base64-encoded and injected as `WORKSPACE_DEF_B64` via the pod's `env` dict, which takes precedence over the template-level value.
+
+| Launch method | Workspace used |
+|---|---|
+| RunPod Console (Deploy on template) | Default (from template Secret) |
+| `launch_pod.py` (no `--workspace`) | Default (from template Secret) |
+| `launch_pod.py --workspace custom.json` | Override (from the provided file) |
+| Frontend service (dashboard launch action) | Override (current workspace from registry) |
+
+The entrypoint and sync script are unchanged — they read `WORKSPACE_DEF_B64` from the environment regardless of where it originated.
+
+**Updating the default:** Re-encode a new workspace JSON, then update the `workspace_def_b64` Secret in the [RunPod Secrets](https://www.console.runpod.io/user/secrets) console. All future pods launched without an explicit override will pick up the new default.
 
 ### Notes
 
 - **GHCR images:** Public GHCR images work without extra registry config. For private images, configure RunPod registry credentials in the template or account settings.
-- **Secrets:** The `{{ RUNPOD_SECRET_* }}` syntax is resolved at pod start. The container receives the decoded values as environment variables.
-- **Optional sync:** If `GCP_SA_B64` and `WORKSPACE_DEF_B64` are not set, the entrypoint skips sync and starts ComfyUI directly.
+- **Secrets resolution:** `{{ RUNPOD_SECRET_* }}` is resolved at pod start. The container receives the values as plain environment variables.
+- **Env override precedence:** The `env` dict passed to `create_pod()` overrides template-level env vars with the same key.
+- **Optional sync:** If neither `GCP_SA_B64` nor `WORKSPACE_DEF_B64` is set, the entrypoint skips sync and starts ComfyUI directly.
