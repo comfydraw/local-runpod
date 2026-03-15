@@ -36,7 +36,9 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 
-COMFYUI_MODELS_ROOT = "/workspace/ComfyUI/models"
+COMFYUI_MODELS_ROOT = os.environ.get(
+    "COMFYUI_MODELS_ROOT", "/workspace/runpod-slim/ComfyUI/models"
+)
 
 SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
 
