@@ -5,7 +5,7 @@ echo "============================================"
 echo "  ComfyUI + GDrive Sync (custom entrypoint)"
 echo "============================================"
 
-if [ -n "$WORKSPACE_DEF_B64" ] && [ -n "$GCP_SA_B64" ]; then
+if [ -n "$workspace_def_b64" ] && [ -n "$GCP_SA_B64" ]; then
     echo "Workspace definition detected — starting sync..."
     python3 /app/gdrive_sync.py
 

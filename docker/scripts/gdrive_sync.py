@@ -7,7 +7,7 @@ are missing from the local ComfyUI models directory.
 
 Environment variables:
     GCP_SA_B64          Base64-encoded GCP Service Account JSON
-    WORKSPACE_DEF_B64   Base64-encoded workspace definition JSON
+    workspace_def_b64   Base64-encoded workspace definition JSON
 
 Workspace definition schema:
     {
@@ -198,7 +198,7 @@ def main():
     print(f"[sync] Models root: {COMFYUI_MODELS_ROOT}")
 
     sa_json = decode_env("GCP_SA_B64")
-    ws_json = decode_env("WORKSPACE_DEF_B64")
+    ws_json = decode_env("workspace_def_b64")
 
     workspace = json.loads(ws_json)
     ws_id = workspace.get("workspace_id", "unknown")

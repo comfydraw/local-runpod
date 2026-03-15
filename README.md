@@ -136,9 +136,9 @@ Store the GCP credential and a default workspace definition as RunPod Secrets.
    | Key                  | Value                                         |
    |----------------------|-----------------------------------------------|
    | `GCP_SA_B64`         | `{{ RUNPOD_SECRET_gcp_sa_b64 }}`              |
-   | `WORKSPACE_DEF_B64`  | `{{ RUNPOD_SECRET_workspace_def_b64 }}`       |
+   | `workspace_def_b64`  | `{{ RUNPOD_SECRET_workspace_def_b64 }}`       |
 
-   The `WORKSPACE_DEF_B64` here is the **default** workspace — the fallback model set used when no override is provided at launch time.
+   The `workspace_def_b64` here is the **default** workspace — the fallback model set used when no override is provided at launch time.
 
 5. Click **Save Template**.
 
@@ -166,7 +166,7 @@ python3 launch_pod.py --workspace path/to/workspace.json
 
 The template stores a **default** workspace definition as a Secret. This ensures every pod — whether launched from the CLI, the RunPod Console, or the API — always has a baseline set of models to sync.
 
-The `--workspace` flag (or the `workspace_json` parameter when calling `launch_pod()` programmatically) lets callers **override** the default at launch time. When provided, the workspace JSON is base64-encoded and injected as `WORKSPACE_DEF_B64` via the pod's `env` dict, which takes precedence over the template-level value.
+The `--workspace` flag (or the `workspace_json` parameter when calling `launch_pod()` programmatically) lets callers **override** the default at launch time. When provided, the workspace JSON is base64-encoded and injected as `workspace_def_b64` via the pod's `env` dict, which takes precedence over the template-level value.
 
 | Launch method | Workspace used |
 |---|---|
@@ -175,7 +175,7 @@ The `--workspace` flag (or the `workspace_json` parameter when calling `launch_p
 | `launch_pod.py --workspace custom.json` | Override (from the provided file) |
 | Frontend service (dashboard launch action) | Override (current workspace from registry) |
 
-The entrypoint and sync script are unchanged — they read `WORKSPACE_DEF_B64` from the environment regardless of where it originated.
+The entrypoint and sync script are unchanged — they read `workspace_def_b64` from the environment regardless of where it originated.
 
 **Updating the default:** Re-encode a new workspace JSON, then update the `workspace_def_b64` Secret in the [RunPod Secrets](https://www.console.runpod.io/user/secrets) console. All future pods launched without an explicit override will pick up the new default.
 
@@ -184,4 +184,4 @@ The entrypoint and sync script are unchanged — they read `WORKSPACE_DEF_B64` f
 - **GHCR images:** Public GHCR images work without extra registry config. For private images, configure RunPod registry credentials in the template or account settings.
 - **Secrets resolution:** `{{ RUNPOD_SECRET_* }}` is resolved at pod start. The container receives the values as plain environment variables.
 - **Env override precedence:** The `env` dict passed to `create_pod()` overrides template-level env vars with the same key.
-- **Optional sync:** If neither `GCP_SA_B64` nor `WORKSPACE_DEF_B64` is set, the entrypoint skips sync and starts ComfyUI directly.
+- **Optional sync:** If neither `GCP_SA_B64` nor `workspace_def_b64` is set, the entrypoint skips sync and starts ComfyUI directly.

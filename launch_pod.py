@@ -23,7 +23,7 @@ def launch_pod(
 
     If volume_id is provided, the network volume will be attached to the pod.
     If workspace_json is provided (raw JSON string), it will be base64-encoded
-    and injected as WORKSPACE_DEF_B64, overriding the template default.
+    and injected as workspace_def_b64, overriding the template default.
 
     Returns the pod ID on success, or None after exhausting retries or on non-capacity errors.
     """
@@ -36,7 +36,7 @@ def launch_pod(
 
     env_overrides = {}
     if workspace_json:
-        env_overrides["WORKSPACE_DEF_B64"] = base64.b64encode(
+        env_overrides["workspace_def_b64"] = base64.b64encode(
             workspace_json.encode()
         ).decode()
         ws = json.loads(workspace_json)
